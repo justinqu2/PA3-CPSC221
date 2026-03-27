@@ -10,10 +10,9 @@
 #include "tritree.h"
 
 TriTree::TriTree(PNG& imIn) {
-	// REPLACE THE LINEs BELOW WITH YOUR CODE
-	width = 0;
-	height = 0;
-	root = nullptr;
+	width = imIn.width();
+	height = imIn.height();
+	root = BuildNode(imIn, {0, 0}, width, height);
 }
 
 void TriTree::Clear() {
@@ -25,8 +24,11 @@ void TriTree::Copy(const TriTree& other) {
 }
 
 PNG TriTree::Render() const {
-	// REPLACE THE LINE BELOW WITH YOUR CODE
-	return PNG();
+	PNG renderedImg(width, height); // Empty PNG
+
+	renderImage(renderedImg, root); // Fill in pixels
+
+	return renderedImg;
 }
 
 void TriTree::Transpose() {
@@ -38,13 +40,42 @@ void TriTree::Prune(double tol) {
 }
 
 int TriTree::NumLeaves() const {
-	// REPLACE THE LINE BELOW WITH YOUR CODE
-	return 0;
+	if (root == nullptr) { // Root for this tree
+		return 0;
+	}
+
+	return countLeaves(root);
 }
 
 Node* TriTree::BuildNode(PNG& im, pair<int, int> ul, int w, int h) {
-	// REPLACE THE LINE BELOW WITH YOUR CODE
-	return nullptr;
+	// Base case (1 pix)
+	if (w == 1 && h == 1) {
+		Node* leaf = new Node(ul, w, h);
+		leaf->avg = *im.getPixel(ul.first, ul.second);
+		return leaf;
+	}
+
+	Node* newNode = new Node(ul, w, h);
+
+	pair<int, int> ulA, ulB, ulC;
+	int wA, hA, wB, hB, wC, hC;
+
+	// Recursively split
+	if (max(w, h) >= 3) {
+		splitThree(ul, w, h, ulA, wA, hA, ulB, wB, hB, ulC, wC, hC); // (ulx, uly, w, h) in order (A, C, B)
+		newNode->A = BuildNode(im, ulA, wA, hA);
+		newNode->B = BuildNode(im, ulB, wB, hB);
+		newNode->C = BuildNode(im, ulC, wC, hC);
+	}
+	else {
+		splitTwo(ul, w, h, ulA, wA, hA, ulC, wC, hC); // (ulx, uly, w, h) in order (A, C)
+		newNode->A = BuildNode(im, ulA, wA, hA);
+		newNode->C = BuildNode(im, ulC, wC, hC);
+	}
+
+	newNode->avg = weightedAvg(newNode);
+
+	return newNode;
 }
 
 /*==== ALSO IMPLEMENT ANY PRIVATE FUNCTIONS YOU HAVE DECLARED ====*/
